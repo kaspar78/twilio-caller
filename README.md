@@ -1,5 +1,5 @@
 # twilio-caller
-To call my friends with automated messages!
+A nodeJS script to call friends with automated messages!
 
 ## TO USE:
 
