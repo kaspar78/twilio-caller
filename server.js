@@ -1,76 +1,74 @@
 require("dotenv").config();
 const client = require("twilio")(process.env.accountSid, process.env.authToken);
 const fs = require("fs");
+const prompt = require("prompt-sync")();
 
+// Custom library files
 const people = require("./people");
+const { cleanInput, getName, longest, forceLength } = require("./lib");
 
-// Reusable for all prompts
-const ask = text => {
-  return new Promise((resolve, reject) => {
-    process.stdin.resume();
-    process.stdin.write(text);
+// Recursive checking for input being in people object
+const keepAsking = name => {
+  if (name in people) {
+    return name;
+  } else {
+    let nameForChecking = ask(
+      `Invalid name: ${name}. Please enter a valid name: `
+    );
 
-    process.stdin.on("data", data => resolve(data.toString().trim()));
-    process.stdin.on("error", error => reject(error));
-  });
+    return keepAsking(nameForChecking);
+  }
 };
 
-async function main() {
-  const preMessage = await ask("Message to send: ");
-  const message = name => preMessage.replace("{{{name}}}", name);
+// Wrapper to cleanup input
+const ask = text => cleanInput(prompt(text));
 
-  const numRecipients = parseInt(await ask("Number of recipients: "));
+const preMessage = ask("Message to send: ");
+const message = name => preMessage.replace("{{{name}}}", name);
 
-  // Set disallows the same elements
-  let inputList = new Set();
-  for (let i = 0; i < numRecipients; i++) {
-    const name = await ask(`Recipient ${i + 1}: `);
-    inputList.add(name.toLowerCase());
-  }
+const numRecipients = parseInt(ask("Number of recipients: "));
 
-  const phoneCalls = [];
-
-  // Transform to Twilio primises
-  inputList.forEach(name =>
-    phoneCalls.push(
-      client.calls.create({
-        twiml: `<Response><Say voice="man">${message(name)}</Say></Response>`,
-        to: people[name],
-        from:
-          people[name] == process.env.myNumber
-            ? process.env.number
-            : process.env.myNumber
-      })
-    )
-  );
-
-  const maxNameLength = 4;
-
-  Promise.all(phoneCalls).then(calls => {
-    // Pretty print
-    console.log("-----------------------------------------------");
-    console.log("| NAME | TO NUMBER    | STATUS | FROM NUMBER  |");
-    for (let call of calls) {
-      // Force length to maxNameLength
-      let name = Object.keys(people)[Object.values(people).indexOf(call.to)];
-      let formattedName =
-        name.length <= maxNameLength
-          ? name + "_".repeat(maxNameLength - name.length)
-          : name.slice(0, maxNameLength);
-
-      console.log(
-        `| ${formattedName.toUpperCase()} |${call.toFormatted}|SUCCESS |${
-          call.fromFormatted
-        }|`
-      );
-    }
-    console.log("-----------------------------------------------");
-
-    // Store for memory's sake
-    fs.appendFileSync("messages.txt", preMessage + "\n");
-
-    process.exit(0);
-  });
+// Set disallows the same elements
+let inputList = new Set();
+for (let i = 0; i < numRecipients; i++) {
+  let name = ask(`Recipient ${i + 1}: `).toLowerCase();
+  name = keepAsking(name);
+  inputList.add(name);
 }
 
-main();
+// Transform to Twilio promises
+let calls = Array.from(inputList).map(name =>
+  client.calls.create({
+    twiml: `<Response><Say voice="man">${message(name)}</Say></Response>`,
+    to: people[name],
+    from:
+      people[name] == process.env.myNumber
+        ? process.env.number
+        : process.env.myNumber
+  })
+);
+
+const longestLength = longest(inputList).length;
+
+Promise.all(calls).then(calls => {
+  // Pretty print
+  const nameField = forceLength("Name", longestLength);
+  console.log("-----------------------------------------------");
+  console.log(`| ${nameField} | TO NUMBER    | STATUS | FROM NUMBER  |`);
+  for (let call of calls) {
+    let name = getName(people, call.to);
+    let formattedName = forceLength(name, longestLength);
+
+    console.log(
+      `| ${formattedName.toUpperCase()} |${call.toFormatted}|SUCCESS |${
+        call.fromFormatted
+      }|`
+    );
+  }
+  console.log("-----------------------------------------------");
+
+  // Store for memory's sake
+  fs.appendFileSync("messages.txt", preMessage + "\n");
+
+  process.exit(0);
+});
