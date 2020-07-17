@@ -41,6 +41,7 @@ let calls = Array.from(inputList).map(name =>
   client.calls.create({
     twiml: `<Response><Say voice="man">${message(name)}</Say></Response>`,
     to: people[name],
+    machineDetection: "DetectMessageEnd",
     from:
       people[name] == process.env.myNumber
         ? process.env.number
@@ -52,7 +53,7 @@ const longestLength = longest(inputList).length;
 
 Promise.all(calls).then(calls => {
   // Pretty print
-  const nameField = forceLength("Name", longestLength);
+  const nameField = forceLength("NAME", longestLength);
   console.log("-----------------------------------------------");
   console.log(`| ${nameField} | TO NUMBER    | STATUS | FROM NUMBER  |`);
   for (let call of calls) {
