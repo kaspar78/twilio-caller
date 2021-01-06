@@ -8,7 +8,7 @@ const people = require("./people");
 const { cleanInput, getName, longest, forceLength } = require("./lib");
 
 // Recursive checking for input being in people object
-const keepAsking = name => {
+const keepAsking = (name) => {
   if (name in people) {
     return name;
   } else {
@@ -21,10 +21,10 @@ const keepAsking = name => {
 };
 
 // Wrapper to cleanup input
-const ask = text => cleanInput(prompt(text));
+const ask = (text) => cleanInput(prompt(text));
 
 const preMessage = ask("Message to send: ");
-const message = name => preMessage.replace("{{{name}}}", name);
+const message = (name) => preMessage.replace("{{{name}}}", name);
 
 const numRecipients = parseInt(ask("Number of recipients: "));
 
@@ -37,20 +37,20 @@ for (let i = 0; i < numRecipients; i++) {
 }
 
 // Transform to Twilio promises
-let calls = Array.from(inputList).map(name =>
+let calls = Array.from(inputList).map((name) =>
   client.calls.create({
     twiml: `<Response><Say voice="man">${message(name)}</Say></Response>`,
     to: people[name],
     from:
       people[name] == process.env.myNumber
         ? process.env.number
-        : process.env.myNumber
+        : process.env.myNumber,
   })
 );
 
 const longestLength = longest(inputList).length;
 
-Promise.all(calls).then(calls => {
+Promise.all(calls).then((calls) => {
   // Pretty print
   const nameField = forceLength("NAME", longestLength);
   console.log("-".repeat(34 + nameField.length));
