@@ -41,6 +41,7 @@ let calls = Array.from(inputList).map((name) =>
   client.calls.create({
     twiml: `<Response><Say voice="man">${message(name)}</Say></Response>`,
     to: people[name],
+    machineDetection: "DetectMessageEnd",
     from:
       people[name] == process.env.myNumber
         ? process.env.number
