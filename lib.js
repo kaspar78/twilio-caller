@@ -3,14 +3,14 @@
  * @param   {Buffer} input
  * @returns {String}
  */
-const cleanInput = input => input.toString().trim().toLowerCase();
+const cleanInput = (input) => input.toString().trim().toLowerCase();
 
 /**
  * Takes an array of strings and returns the string that is the longest
  * @param   {Set<String>} list
  * @returns {String}        The longest string in the array
  */
-const longest = list =>
+const longest = (list) =>
   Array.from(list).reduce((a, b) => (a.length > b.length ? a : b));
 
 /**
